@@ -1,4 +1,4 @@
-<?php 
+<!<?php 
 /*
 We will get the changed data from edit.php file and update them into database
 */
@@ -41,4 +41,18 @@ We will get the changed data from edit.php file and update them into database
 	}
 
 	header("Location: dashboard.php");
-	exit;
+	exit; -->
+
+<?php
+session_start();
+include_once('config.php');
+if (empty($_SESSION['username'])) { header("Location: login.php"); exit; }
+if (empty($_SESSION['is_admin'])) { header("Location: dashboard.php"); exit; }
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+	$id = (int)($_POST['id'] ?? 0); $name = trim($_POST['cloth_name'] ?? ''); $desc = trim($_POST['cloth_desc'] ?? '');
+	$qty = (int)($_POST['cloth_quantity'] ?? 0); $size = $_POST['cloth_size'] ?? '';
+	if ($id <= 0 || $name === '' || $desc === '' || $qty < 1 || !is_numeric($size)) { die("Invalid data. Please go back and fill in all fields correctly."); }
+	$st = $conn->prepare("UPDATE clothes SET cloth_name=:n, cloth_desc=:d, cloth_quantity=:q, cloth_size=:s WHERE id=:id");
+	$st->execute([':n'=>$name, ':d'=>$desc, ':q'=>$qty, ':s'=>$size, ':id'=>$id]);
+}
+header("Location: list_clothes.php"); exit;

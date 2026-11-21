@@ -1,4 +1,4 @@
-<?php 
+<!-- <?php 
  /*Creating a session  based on a session identifier, passed via a GET or POST request.
   We will include config.php for connection with database.
   */
@@ -43,4 +43,20 @@
 
 
 
- ?>
+ ?> -->
+
+
+<?php
+session_start();
+include_once('config.php');
+if (empty($_SESSION['username'])) { header("Location: login.php"); exit; }
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header("Location: list_clothes.php"); exit; }
+$user_id = (int)$_SESSION['id']; $cloth_id = (int)($_SESSION['cloth_id'] ?? 0);
+$nr = (int)($_POST['nr_donations'] ?? 0); $date = $_POST['date'] ?? ''; $time = $_POST['time'] ?? '';
+if ($cloth_id <= 0 || $nr < 1 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || $date < date('Y-m-d') || !preg_match('/^\d{2}:\d{2}$/', $time)) {
+	die("Invalid pledge. <a href='list_clothes.php'>Go back</a>");
+}
+$st = $conn->prepare("INSERT INTO donations(user_id, cloth_id, nr_donations, date, time) VALUES (:u, :c, :n, :d, :t)");
+$st->execute([':u'=>$user_id, ':c'=>$cloth_id, ':n'=>$nr, ':d'=>$date, ':t'=>$time]);
+header("Location: donations.php"); 
+exit;

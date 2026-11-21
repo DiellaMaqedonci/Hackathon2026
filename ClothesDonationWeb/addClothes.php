@@ -1,4 +1,4 @@
-<?php	
+<!-- <?php	
 
 //Including config.php file for connection with database 
 	include_once('config.php');
@@ -35,4 +35,19 @@
 
 
 
-?>
+?> -->
+
+
+<?php
+session_start();
+include_once('config.php');
+if (empty($_SESSION['username'])) { header("Location: login.php"); exit; }
+if (empty($_SESSION['is_admin'])) { header("Location: dashboard.php"); exit; }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
+	$name = trim($_POST['cloth_name'] ?? ''); $desc = trim($_POST['cloth_desc'] ?? '');
+	$qty = (int)($_POST['cloth_quantity'] ?? 0); $size = $_POST['cloth_size'] ?? ''; $img = trim($_POST['cloth_img'] ?? '');
+	if ($name === '' || $desc === '' || $qty < 1 || !is_numeric($size)) { die("Invalid data. <a href='clothes.php'>Go back</a>"); }
+	$st = $conn->prepare("INSERT INTO clothes(cloth_name, cloth_desc, cloth_quantity, cloth_size, cloth_img) VALUES (:n, :d, :q, :s, :i)");
+	$st->execute([':n'=>$name, ':d'=>$desc, ':q'=>$qty, ':s'=>$size, ':i'=>$img]);
+}
+header("Location: list_clothes.php"); exit;

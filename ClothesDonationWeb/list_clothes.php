@@ -23,10 +23,10 @@ if ($cur) {
 	$cid = (int)($_GET['charity'] ?? 0);
 	foreach ($charities as $ch) { if ((int)$ch['id'] === $cid) $charity = $ch; }
 	if ($charity) {
-		$st = $conn->prepare("SELECT * FROM clothes WHERE charity_id = :i ORDER BY id DESC");
+		$st = $conn->prepare("SELECT clothes.*, (SELECT COALESCE(SUM(d.nr_donations),0) FROM donations d WHERE d.cloth_id = clothes.id AND d.is_approved = 'true') AS received FROM clothes WHERE charity_id = :i ORDER BY clothes.id DESC");
 		$st->execute([':i' => $charity['id']]);
 	} else {
-		$st = $conn->prepare("SELECT clothes.* FROM clothes INNER JOIN charities ch ON ch.id = clothes.charity_id WHERE ch.country = :c ORDER BY clothes.id DESC");
+		$st = $conn->prepare("SELECT clothes.*, (SELECT COALESCE(SUM(d.nr_donations),0) FROM donations d WHERE d.cloth_id = clothes.id AND d.is_approved = 'true') AS received FROM clothes INNER JOIN charities ch ON ch.id = clothes.charity_id WHERE ch.country = :c ORDER BY clothes.id DESC");
 		$st->execute([':c' => $country]);
 	}
 	$users_data = $st->fetchAll();
@@ -46,7 +46,10 @@ function cloth_card($c){ ?>
   <div class="bd">
     <h3 class="h5 mb-1"><?= e($c['cloth_name']) ?></h3>
     <p class="text-secondary small mb-3"><?= e(mb_strimwidth((string)$c['cloth_desc'], 0, 70, '…')) ?></p>
-    <span class="pill"><?= (int)$c['cloth_quantity'] ?> pieces needed</span>
+    <?php $q = max(1, (int)$c['cloth_quantity']); $r = (int)($c['received'] ?? 0); $pc = min(100, (int)round($r / $q * 100)); ?>
+    <div class="d-flex justify-content-between small fw-bold mb-1"><span><?= $r ?> of <?= (int)$c['cloth_quantity'] ?> received</span><span><?= $pc ?>%</span></div>
+    <div class="meter mb-3"><i style="width:<?= $pc ?>%"></i></div>
+    <?php if ($pc >= 100): ?><span class="done-badge"><i class="bi bi-check-circle-fill"></i> Donation completed</span><?php else: ?><span class="pill"><?= max(0, (int)$c['cloth_quantity'] - $r) ?> pieces still needed</span><?php endif; ?>
   </div>
 </a>
 <?php } ?>
@@ -112,6 +115,9 @@ h1,h2,h3,h4,.brand,.num{font-family:'Unbounded',system-ui,sans-serif;letter-spac
 @media(max-width:991px){.float-tag{display:none}.hero{min-height:auto}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.js .rv{opacity:1;transform:none}}
 .leaflet-container a.btn-primary{color:#fff}.leaflet-popup-content{font-family:inherit}
+.cl-col{display:flex;flex-direction:column}.cl-col .cl{flex:1 1 auto;height:auto}
+.meter{height:10px;background:#e8eefc;border-radius:99px;overflow:hidden}.meter>i{display:block;height:100%;background:linear-gradient(90deg,var(--denim),var(--mint));border-radius:99px}
+.done-badge{display:inline-flex;align-items:center;gap:.35rem;font-weight:800;font-size:.8rem;color:#17694a;background:#d9f5ea;border-radius:99px;padding:.3rem .8rem}
 </style>
 </head><body class="d-flex flex-column min-vh-100">
 <nav class="navbar navbar-expand-md nav-dark sticky-top" data-bs-theme="dark"><div class="container">
@@ -176,21 +182,18 @@ h1,h2,h3,h4,.brand,.num{font-family:'Unbounded',system-ui,sans-serif;letter-spac
   const sel = <?= (int)($charity['id'] ?? 0) ?>;
   const map = L.map('map').setView([cur.lat, cur.lng], cur.zoom);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'}).addTo(map);
-  const pts = [], markers = {};
+  const pts = [];
   list.forEach(c => {
-    const lat = parseFloat(c.lat), lng = parseFloat(c.lng);
-    // skip charities without real coordinates (otherwise they land at 0,0 and zoom the map out to the ocean)
-    if (!isFinite(lat) || !isFinite(lng) || (lat === 0 && lng === 0)) return;
-    const m = L.marker([lat, lng]).addTo(map); pts.push([lat, lng]); markers[c.id] = m;
+    const m = L.marker([+c.lat, +c.lng]).addTo(map); pts.push([+c.lat, +c.lng]);
     const d = document.createElement('div');
     d.innerHTML = '<b></b><br><span></span><br><a class="btn btn-sm btn-primary mt-2">See needs</a>';
     d.querySelector('b').textContent = c.name;
     d.querySelector('span').textContent = (c.city || '') + (c.address ? ' · ' + c.address : '') + ' · ' + c.needs + ' needs';
     d.querySelector('a').href = 'list_clothes.php?charity=' + c.id;
     m.bindPopup(d);
+    if (+c.id === sel) m.openPopup();
   });
   if (pts.length) map.fitBounds(pts, {padding: [40, 40], maxZoom: 12});
-  if (sel && markers[sel]) { map.setView(markers[sel].getLatLng(), 14); markers[sel].openPopup(); }
   </script>
  <?php endif; ?>
 </div>

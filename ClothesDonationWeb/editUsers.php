@@ -4,9 +4,10 @@ include_once('config.php');
 if (empty($_SESSION['username'])) { header("Location: login.php"); exit; }
 if (empty($_SESSION['is_admin'])) { header("Location: dashboard.php"); exit; }
 $id = (int)($_GET['id'] ?? 0);
-$st = $conn->prepare("SELECT id, name, username, email FROM users WHERE id=:id"); $st->bindParam(':id', $id, PDO::PARAM_INT); $st->execute();
+$st = $conn->prepare("SELECT id, name, username, email, charity_id FROM users WHERE id=:id"); $st->bindParam(':id', $id, PDO::PARAM_INT); $st->execute();
 $user_data = $st->fetch();
 if (!$user_data) { header("Location: dashboard.php"); exit; }
+$charities = $conn->query("SELECT ch.id, ch.name, co.name AS cn FROM charities ch LEFT JOIN countries co ON co.code = ch.country ORDER BY co.name, ch.name")->fetchAll();
 $title = 'Edit user'; $active = 'dashboard.php'; ?>
 <?php
 // Set $title and $active before including this file.
@@ -109,7 +110,8 @@ h1,h2,h3,h4,.brand,.num{font-family:'Unbounded',system-ui,sans-serif;letter-spac
 <div class="container pull" style="max-width:640px"><form method="post" action="updateUsers.php" class="panel"><input type="hidden" name="id" value="<?= (int)$user_data['id'] ?>">
  <div class="mb-3"><label class="form-label" for="name">Name</label><input class="form-control" id="name" name="name" value="<?= e($user_data['name']) ?>" required></div>
  <div class="mb-3"><label class="form-label" for="username">Username</label><input class="form-control" id="username" name="username" value="<?= e($user_data['username']) ?>" required></div>
- <div class="mb-4"><label class="form-label" for="email">Email</label><input type="email" class="form-control" id="email" name="email" value="<?= e($user_data['email']) ?>" required></div>
+ <div class="mb-3"><label class="form-label" for="email">Email</label><input type="email" class="form-control" id="email" name="email" value="<?= e($user_data['email']) ?>" required></div>
+ <div class="mb-4"><label class="form-label" for="charity_id">Charity account</label><select class="form-select" id="charity_id" name="charity_id"><option value="">None (normal donor)</option><?php foreach($charities as $ch): ?><option value="<?= (int)$ch['id'] ?>" <?= (int)$user_data['charity_id']===(int)$ch['id']?'selected':'' ?>><?= e($ch['cn'] . ' · ' . $ch['name']) ?></option><?php endforeach; ?></select><div class="form-text">Linking a charity lets this user post that charity's needs and see its pledges.</div></div>
  <div class="d-flex gap-2"><button class="btn btn-primary px-4">Save changes</button><a class="btn btn-outline-secondary" href="dashboard.php">Cancel</a></div></form></div>
 </main>
 <footer class="footer py-4 mt-5"><div class="container d-flex flex-wrap justify-content-between gap-2 small">

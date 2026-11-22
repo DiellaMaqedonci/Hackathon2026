@@ -1,9 +1,6 @@
 <?php
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
 session_start();
 include_once('config.php');
-
 if (empty($_SESSION['username'])) { header("Location: login.php"); exit; }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header("Location: list_clothes.php"); exit; }
 
@@ -21,11 +18,19 @@ if ($nr < 1 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || $date < date('Y-m-
 }
 
 try {
+	// Do not accept pledges for a need that is already completed
+	$st = $conn->prepare("SELECT cloth_quantity, (SELECT COALESCE(SUM(nr_donations),0) FROM donations WHERE cloth_id = clothes.id AND is_approved = 'true') AS received FROM clothes WHERE id = :c");
+	$st->execute([':c' => $cloth_id]);
+	$row = $st->fetch();
+	if (!$row) { die("This need no longer exists. <a href='list_clothes.php'>Go back</a>"); }
+	if ((int)$row['received'] >= (int)$row['cloth_quantity']) {
+		die("This donation is already completed. Thank you! <a href='list_clothes.php'>Go back</a>");
+	}
+
 	$st = $conn->prepare("INSERT INTO donations(user_id, cloth_id, nr_donations, date, time) VALUES (:u, :c, :n, :d, :t)");
 	$st->execute([':u' => $user_id, ':c' => $cloth_id, ':n' => $nr, ':d' => $date, ':t' => $time]);
 } catch (PDOException $e) {
 	die("Could not save the pledge: " . htmlspecialchars($e->getMessage()) . " <a href='list_clothes.php'>Go back</a>");
 }
-
 header("Location: donations.php");
 exit;

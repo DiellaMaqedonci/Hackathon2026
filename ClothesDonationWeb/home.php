@@ -1,6 +1,6 @@
 <?php
 include_once('config.php');
-$clothes_data = $conn->query("SELECT * FROM clothes ORDER BY id DESC")->fetchAll();
+$clothes_data = $conn->query("SELECT clothes.*, (SELECT COALESCE(SUM(d.nr_donations),0) FROM donations d WHERE d.cloth_id = clothes.id AND d.is_approved = 'true') AS received FROM clothes ORDER BY id DESC")->fetchAll();
 $title = 'Home'; $active = 'home.php'; ?>
 <?php
 // Set $title and $active before including this file.
@@ -15,7 +15,10 @@ function cloth_card($c){ ?>
   <div class="bd">
     <h3 class="h5 mb-1"><?= e($c['cloth_name']) ?></h3>
     <p class="text-secondary small mb-3"><?= e(mb_strimwidth((string)$c['cloth_desc'], 0, 70, '…')) ?></p>
-    <span class="pill"><?= (int)$c['cloth_quantity'] ?> pieces needed</span>
+    <?php $q = max(1, (int)$c['cloth_quantity']); $r = (int)($c['received'] ?? 0); $pc = min(100, (int)round($r / $q * 100)); ?>
+    <div class="d-flex justify-content-between small fw-bold mb-1"><span><?= $r ?> of <?= (int)$c['cloth_quantity'] ?> received</span><span><?= $pc ?>%</span></div>
+    <div class="meter mb-3"><i style="width:<?= $pc ?>%"></i></div>
+    <?php if ($pc >= 100): ?><span class="done-badge"><i class="bi bi-check-circle-fill"></i> Donation completed</span><?php else: ?><span class="pill"><?= max(0, (int)$c['cloth_quantity'] - $r) ?> pieces still needed</span><?php endif; ?>
   </div>
 </a>
 <?php } ?>
@@ -64,7 +67,7 @@ h1,h2,h3,h4,.brand,.num{font-family:'Unbounded',system-ui,sans-serif;letter-spac
 .cl:hover{transform:translateY(-8px) rotate(-.6deg);box-shadow:0 26px 50px rgba(12,22,51,.18);color:var(--ink)}
 .cl .ph{aspect-ratio:4/3;background:linear-gradient(135deg,var(--denim),var(--ink2));display:grid;place-items:center;color:var(--sun);font-size:3.4rem;position:relative;overflow:hidden}
 .cl .ph img{width:100%;height:100%;object-fit:contain;background:#eef1fa;position:absolute;inset:0;transition:.5s}
-.cl:hover .ph img{transform:scale(1.07)}
+.cl:hover .ph img{transform:none}
 .cl .sz{position:absolute;top:12px;right:12px;background:var(--sun);color:var(--ink);font-family:'Unbounded';font-weight:800;font-size:.8rem;border-radius:12px;padding:.3rem .75rem;z-index:1}
 .cl .bd{padding:1.1rem 1.25rem 1.3rem}
 .pill{display:inline-block;font-size:.78rem;font-weight:700;padding:.25rem .7rem;border-radius:99px;background:#e8eefc;color:var(--denim)}
@@ -79,6 +82,8 @@ h1,h2,h3,h4,.brand,.num{font-family:'Unbounded',system-ui,sans-serif;letter-spac
 .footer{background:var(--ink);color:#9aa8d2}
 @media(max-width:991px){.float-tag{display:none}.hero{min-height:auto}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.js .rv{opacity:1;transform:none}}
+.meter{height:10px;background:#e8eefc;border-radius:99px;overflow:hidden}.meter>i{display:block;height:100%;background:linear-gradient(90deg,var(--denim),var(--mint));border-radius:99px}
+.done-badge{display:inline-flex;align-items:center;gap:.35rem;font-weight:800;font-size:.8rem;color:#17694a;background:#d9f5ea;border-radius:99px;padding:.3rem .8rem}
 </style>
 </head><body class="d-flex flex-column min-vh-100">
 <nav class="navbar navbar-expand-md nav-dark sticky-top" data-bs-theme="dark"><div class="container">

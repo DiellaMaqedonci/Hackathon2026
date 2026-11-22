@@ -3,11 +3,12 @@ session_start();
 include_once('config.php');
 if (empty($_SESSION['username'])) { header("Location: login.php"); exit; }
 $user_id = (int)$_SESSION['id']; $adm = !empty($_SESSION['is_admin']);
-$sql = "SELECT clothes.cloth_name, users.email, donations.id, donations.nr_donations, donations.date, donations.is_approved, donations.time
+$mine = (int)($_SESSION['charity_id'] ?? 0); $staff = $adm || $mine;
+$sql = "SELECT clothes.cloth_name, users.name AS donor_name, users.email, donations.id, donations.nr_donations, donations.date, donations.is_approved, donations.time
         FROM clothes INNER JOIN donations ON clothes.id = donations.cloth_id INNER JOIN users ON users.id = donations.user_id "
-     . ($adm ? "" : "WHERE donations.user_id = :user_id ") . "ORDER BY donations.date DESC";
+     . ($adm ? "" : ($mine ? "WHERE clothes.charity_id = :scope " : "WHERE donations.user_id = :scope ")) . "ORDER BY donations.date DESC";
 $st = $conn->prepare($sql);
-if (!$adm) $st->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+if (!$adm) { $st->bindValue(':scope', $mine ?: $user_id, PDO::PARAM_INT); }  // charity accounts see pledges for their own needs only
 $st->execute(); $donations_data = $st->fetchAll();
 $title = 'Pledges'; $active = 'donations.php'; ?>
 <?php
@@ -107,15 +108,15 @@ h1,h2,h3,h4,.brand,.num{font-family:'Unbounded',system-ui,sans-serif;letter-spac
 </div></nav>
 <main class="flex-grow-1">
 
-<div class="band"><div class="container"><h1><?= $adm ? 'All pledges' : 'My pledges' ?></h1><p><?= $adm ? 'Confirm what has arrived.' : 'What you promised and what has been confirmed.' ?></p></div></div>
+<div class="band"><div class="container"><h1><?= $staff ? ($adm ? 'All pledges' : 'Pledges for your needs') : 'My pledges' ?></h1><p><?= $staff ? 'Confirm what has arrived.' : 'What you promised and what has been confirmed.' ?></p></div></div>
 <div class="container pull"><div class="panel p-0 overflow-hidden"><div class="table-responsive"><table class="table align-middle mb-0">
- <thead><tr><th>Item</th><?php if($adm): ?><th>Donor</th><?php endif; ?><th>Qty</th><th>Drop-off</th><th>Status</th><?php if($adm): ?><th></th><?php endif; ?></tr></thead>
+ <thead><tr><th>Item</th><?php if($staff): ?><th>Donor</th><?php endif; ?><th>Qty</th><th>Drop-off</th><th>Status</th><?php if($staff): ?><th></th><?php endif; ?></tr></thead>
  <tbody>
  <?php foreach($donations_data as $d): $ok = ($d['is_approved'] === 'true' || $d['is_approved'] === '1'); ?>
-  <tr><td class="fw-bold"><?= e($d['cloth_name']) ?></td><?php if($adm): ?><td><?= e($d['email']) ?></td><?php endif; ?>
+  <tr><td class="fw-bold"><?= e($d['cloth_name']) ?></td><?php if($staff): ?><td><?= e($d['donor_name']) ?><br><small class="text-secondary"><?= e($d['email']) ?></small></td><?php endif; ?>
   <td><?= (int)$d['nr_donations'] ?></td><td><?= e($d['date']) ?>, <?= e(substr((string)$d['time'],0,5)) ?></td>
   <td><span class="badge rounded-pill <?= $ok ? 'st-ok' : 'st-wait' ?>"><?= $ok ? 'Confirmed' : 'Awaiting' ?></span></td>
-  <?php if($adm): ?><td class="text-end"><a class="btn btn-sm btn-primary" href="approve.php?id=<?= (int)$d['id'] ?>">Arrived</a> <a class="btn btn-sm btn-outline-danger" href="decline.php?id=<?= (int)$d['id'] ?>">Decline</a></td><?php endif; ?></tr>
+  <?php if($staff): ?><td class="text-end"><a class="btn btn-sm btn-primary" href="approve.php?id=<?= (int)$d['id'] ?>">Arrived</a> <a class="btn btn-sm btn-outline-danger" href="decline.php?id=<?= (int)$d['id'] ?>">Decline</a></td><?php endif; ?></tr>
  <?php endforeach; ?>
  <?php if(!$donations_data): ?><tr><td colspan="6" class="text-center text-secondary py-5">No pledges yet. <a href="list_clothes.php">Find something to give</a></td></tr><?php endif; ?>
  </tbody></table></div></div></div>

@@ -1,7 +1,20 @@
--- Run ONCE on an existing database to add the map feature (keeps your users, clothes and donations).
+DROP DATABASE IF EXISTS `hackathon26_clothesdonationschema`;
+CREATE DATABASE `hackathon26_clothesdonationschema` DEFAULT CHARACTER SET utf8mb4;
 USE `hackathon26_clothesdonationschema`;
 
-CREATE TABLE IF NOT EXISTS `countries` (
+CREATE TABLE `users` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `username` varchar(255) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `is_admin` varchar(255) NOT NULL DEFAULT 'false',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `countries` (
   `code` char(2) NOT NULL,
   `name` varchar(100) NOT NULL,
   `lat` decimal(9,6) NOT NULL,
@@ -10,7 +23,7 @@ CREATE TABLE IF NOT EXISTS `countries` (
   PRIMARY KEY (`code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS `charities` (
+CREATE TABLE `charities` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `country` char(2) NOT NULL,
@@ -23,12 +36,33 @@ CREATE TABLE IF NOT EXISTS `charities` (
   CONSTRAINT `fk_charities_country` FOREIGN KEY (`country`) REFERENCES `countries` (`code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-ALTER TABLE `clothes`
-  ADD COLUMN `charity_id` int NULL DEFAULT NULL,
-  ADD KEY `idx_clothes_charity` (`charity_id`),
-  ADD CONSTRAINT `fk_clothes_charity` FOREIGN KEY (`charity_id`) REFERENCES `charities` (`id`) ON DELETE SET NULL;
+CREATE TABLE `clothes` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `cloth_name` varchar(255) NOT NULL,
+  `cloth_desc` varchar(255) NOT NULL,
+  `cloth_quantity` int NOT NULL,
+  `cloth_size` int NOT NULL,
+  `cloth_img` varchar(255) NOT NULL DEFAULT '',
+  `charity_id` int NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_clothes_charity` (`charity_id`),
+  CONSTRAINT `fk_clothes_charity` FOREIGN KEY (`charity_id`) REFERENCES `charities` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT IGNORE INTO `countries` (`code`,`name`,`lat`,`lng`,`zoom`) VALUES
+CREATE TABLE `donations` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `cloth_id` int NOT NULL,
+  `nr_donations` int NOT NULL,
+  `date` varchar(255) NOT NULL,
+  `time` varchar(255) NOT NULL,
+  `is_approved` varchar(255) NOT NULL DEFAULT 'false',
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_donations_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_donations_cloth` FOREIGN KEY (`cloth_id`) REFERENCES `clothes` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `countries` (`code`,`name`,`lat`,`lng`,`zoom`) VALUES
 ('AL','Albania',41.15,20.17,7),
 ('XK','Kosovo',42.6,20.9,8),
 ('MK','North Macedonia',41.61,21.75,8),
@@ -75,12 +109,21 @@ INSERT IGNORE INTO `countries` (`code`,`name`,`lat`,`lng`,`zoom`) VALUES
 ('ZA','South Africa',-30.56,22.94,5);
 
 -- SAMPLE charities (invented names, real city centres). Delete them whenever you like.
-INSERT IGNORE INTO `charities` (`id`,`name`,`country`,`city`,`address`,`lat`,`lng`) VALUES
+INSERT INTO `charities` (`id`,`name`,`country`,`city`,`address`,`lat`,`lng`) VALUES
 (1,'Warm Hands Prishtina','XK','Prishtina','Sample street 1',42.662900,21.165500),
 (2,'Prizren Winter Aid','XK','Prizren','Sample street 2',42.213900,20.739700),
 (3,'Tirana Coat Drive','AL','Tirana','Sample street 3',41.327500,19.818700),
 (4,'Skopje Clothing Bank','MK','Skopje','Sample street 4',41.997300,21.428000),
 (5,'Berlin Kleiderhilfe','DE','Berlin','Sample street 5',52.520000,13.405000);
 
--- Attach the existing sample needs to the sample charities (only those without a charity yet)
-UPDATE `clothes` SET `charity_id` = 1 WHERE `charity_id` IS NULL;
+INSERT INTO `clothes` (`cloth_name`, `cloth_desc`, `cloth_quantity`, `cloth_size`, `cloth_img`, `charity_id`) VALUES
+('Winter coats', 'Warm, clean coats with working zippers.', 20, 40, '', 1),
+('Children''s boots', 'Waterproof boots for kids.', 15, 32, '', 2),
+('Wool sweaters', 'Thick sweaters, no holes or stains.', 10, 42, '', 3),
+('Thermal socks', 'New or very lightly used socks.', 40, 38, '', 1);
+
+
+ALTER TABLE `users`
+  ADD COLUMN `charity_id` int NULL DEFAULT NULL,
+  ADD KEY `idx_users_charity` (`charity_id`),
+  ADD CONSTRAINT `fk_users_charity` FOREIGN KEY (`charity_id`) REFERENCES `charities` (`id`) ON DELETE SET NULL;

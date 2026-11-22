@@ -12,12 +12,16 @@
 		header("Location: login.php");
 		exit;
 	}
-	if (empty($_SESSION['is_admin'])) {
-		header("Location: dashboard.php");
-		exit;
-	}
+	$mine = (int)($_SESSION['charity_id'] ?? 0);
+if (empty($_SESSION['is_admin']) && !$mine) { header("Location: dashboard.php"); exit; }
 
 	$id = (int)($_GET['id'] ?? 0);
+
+	//A charity account may only delete its own needs
+	if (empty($_SESSION['is_admin'])) {
+		$own = $conn->prepare("SELECT charity_id FROM clothes WHERE id=:id"); $own->execute([':id'=>$id]);
+		if ((int)$own->fetchColumn() !== $mine) { header("Location: dashboard.php"); exit; }
+	}
 
 	if ($id > 0) {
 		$sql = "DELETE FROM clothes WHERE id=:id";

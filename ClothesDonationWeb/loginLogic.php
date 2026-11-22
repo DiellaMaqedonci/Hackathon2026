@@ -30,7 +30,7 @@
 	}
 
 	//If false, we will create a query to select id,emri,username,email,password,is_admin from users table based on each username
-	$sql = "SELECT id, name, username, email, password, is_admin FROM users WHERE username=:username";
+	$sql = "SELECT id, name, username, email, password, is_admin, charity_id FROM users WHERE username=:username";
 
 	//We use prepared statement as a feature used to execute the same sql statement repeatedly with high efficiency
 	$selectUser = $conn->prepare($sql);
@@ -57,6 +57,7 @@
 		$_SESSION['username'] = $data['username'];
 		$_SESSION['email'] = $data['email'];
 		$_SESSION['name'] = $data['name'];
+		$_SESSION['charity_id'] = (int)($data['charity_id'] ?? 0);
 
 		//Store a real boolean, works whether the column holds 'true'/'false' or 1/0
 		$_SESSION['is_admin'] = ($data['is_admin'] === 'true' || $data['is_admin'] == 1);

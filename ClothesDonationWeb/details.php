@@ -3,10 +3,12 @@ session_start();
 include_once('config.php');
 if (empty($_SESSION['username'])) { header("Location: login.php"); exit; }
 $id = (int)($_GET['id'] ?? 0);
-$st = $conn->prepare("SELECT clothes.*, ch.name AS charity_name, ch.city AS charity_city, ch.address AS charity_address FROM clothes LEFT JOIN charities ch ON ch.id = clothes.charity_id WHERE clothes.id=:id"); $st->bindParam(":id", $id, PDO::PARAM_INT); $st->execute();
+$st = $conn->prepare("SELECT clothes.*, ch.name AS charity_name, ch.city AS charity_city, ch.address AS charity_address, (SELECT COALESCE(SUM(d.nr_donations),0) FROM donations d WHERE d.cloth_id = clothes.id AND d.is_approved = 'true') AS received FROM clothes LEFT JOIN charities ch ON ch.id = clothes.charity_id WHERE clothes.id=:id"); $st->bindParam(":id", $id, PDO::PARAM_INT); $st->execute();
 $cloth_data = $st->fetch();
 if (!$cloth_data) { header("Location: list_clothes.php"); exit; }
 $_SESSION['cloth_id'] = $id;
+$q = max(1, (int)$cloth_data['cloth_quantity']); $r = (int)$cloth_data['received'];
+$pc = min(100, (int)round($r / $q * 100)); $done = $r >= (int)$cloth_data['cloth_quantity']; $left = max(1, (int)$cloth_data['cloth_quantity'] - $r);
 $title = $cloth_data['cloth_name']; $active = 'list_clothes.php'; ?>
 <?php
 // Set $title and $active before including this file.
@@ -85,6 +87,8 @@ h1,h2,h3,h4,.brand,.num{font-family:'Unbounded',system-ui,sans-serif;letter-spac
 .footer{background:var(--ink);color:#9aa8d2}
 @media(max-width:991px){.float-tag{display:none}.hero{min-height:auto}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.js .rv{opacity:1;transform:none}}
+.meter{height:10px;background:#e8eefc;border-radius:99px;overflow:hidden}.meter>i{display:block;height:100%;background:linear-gradient(90deg,var(--denim),var(--mint));border-radius:99px}
+.done-badge{display:inline-flex;align-items:center;gap:.35rem;font-weight:800;font-size:.8rem;color:#17694a;background:#d9f5ea;border-radius:99px;padding:.3rem .8rem}
 </style>
 </head><body class="d-flex flex-column min-vh-100">
 <nav class="navbar navbar-expand-md nav-dark sticky-top" data-bs-theme="dark"><div class="container">
@@ -108,16 +112,18 @@ h1,h2,h3,h4,.brand,.num{font-family:'Unbounded',system-ui,sans-serif;letter-spac
 <div class="band"><div class="container"><a class="text-white-50 small" href="list_clothes.php">← All needs</a><h1 class="mt-2"><?= e($cloth_data['cloth_name']) ?></h1><?php if(!empty($cloth_data['charity_name'])): ?><p><i class="bi bi-geo-alt"></i> <?= e($cloth_data['charity_name']) ?><?= $cloth_data['charity_city'] ? ' · '.e($cloth_data['charity_city']) : '' ?><?= $cloth_data['charity_address'] ? ' · '.e($cloth_data['charity_address']) : '' ?></p><?php endif; ?></div></div>
 <div class="container pull"><div class="row g-4">
  <div class="col-lg-7"><div class="cl" style="transform:none"><div class="ph" style="aspect-ratio:4/3"><i class="bi bi-handbag"></i><?php if(!empty($cloth_data['cloth_img'])): ?><img src="<?= e($cloth_data['cloth_img']) ?>" alt="" onerror="this.remove()"><?php endif; ?><span class="sz">Size <?= e($cloth_data['cloth_size']) ?></span></div>
-  <div class="bd p-4"><span class="pill mb-3"><?= (int)$cloth_data['cloth_quantity'] ?> pieces needed</span><p class="mb-0 fs-5"><?= nl2br(e($cloth_data['cloth_desc'])) ?></p></div></div></div>
- <div class="col-lg-5"><form method="post" action="donate.php" class="panel">
+  <div class="bd p-4"><div class="d-flex justify-content-between fw-bold mb-1"><span><?= $r ?> of <?= (int)$cloth_data['cloth_quantity'] ?> received</span><span><?= $pc ?>%</span></div>
+   <div class="meter mb-3" style="height:14px"><i style="width:<?= $pc ?>%"></i></div>
+   <?php if ($done): ?><span class="done-badge mb-3"><i class="bi bi-check-circle-fill"></i> Donation completed</span><?php else: ?><span class="pill mb-3"><?= $left ?> pieces still needed</span><?php endif; ?><p class="mb-0 fs-5"><?= nl2br(e($cloth_data['cloth_desc'])) ?></p></div></div></div>
+ <div class="col-lg-5"><?php if($done): ?><div class="panel text-center py-5"><i class="bi bi-check-circle-fill display-3 text-success"></i><h2 class="h4 mt-3">Donation completed</h2><p class="text-secondary mb-0">This need has been fully received. Thank you!</p></div><?php else: ?><form method="post" action="donate.php" class="panel">
   <h2 class="h4 mb-4">Pledge &amp; book a drop-off</h2>
-  <div class="mb-3"><label class="form-label" for="nr_donations">How many pieces?</label><input type="number" class="form-control" id="nr_donations" name="nr_donations" min="1" max="<?= (int)$cloth_data['cloth_quantity'] ?>" value="1" required></div>
+  <div class="mb-3"><label class="form-label" for="nr_donations">How many pieces?</label><input type="number" class="form-control" id="nr_donations" name="nr_donations" min="1" max="<?= $left ?>" value="1" required></div>
   <div class="mb-3"><label class="form-label" for="date">Drop-off day</label><input type="date" class="form-control" id="date" name="date" required></div>
   <div class="mb-4"><span class="form-label d-block">Time</span><div class="d-flex flex-wrap gap-2">
    <?php foreach(['09:00','10:00','11:00','14:00','16:00'] as $i=>$t): ?><input type="radio" class="btn-check" name="time" id="t<?= $i ?>" value="<?= $t ?>" <?= $i?'':'checked' ?>><label class="btn btn-outline-primary slot" for="t<?= $i ?>"><?= $t ?></label><?php endforeach; ?>
   </div></div>
   <button class="btn btn-sun w-100 py-3">Confirm pledge</button>
- </form></div>
+ </form><?php endif; ?></div>
 </div></div>
 </main>
 <footer class="footer py-4 mt-5"><div class="container d-flex flex-wrap justify-content-between gap-2 small">

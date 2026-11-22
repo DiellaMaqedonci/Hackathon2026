@@ -3,13 +3,11 @@ session_start();
 include_once('config.php');
 if (empty($_SESSION['username'])) { header("Location: login.php"); exit; }
 $is_admin = !empty($_SESSION['is_admin']); $uid = (int)$_SESSION['id'];
-$mine = (int)($_SESSION['charity_id'] ?? 0); $staff = $is_admin || $mine;
+$my_ch = (int)($_SESSION['charity_id'] ?? 0); $staff = $is_admin || $my_ch > 0;
 $users_data = [];
-if ($is_admin) { $users_data = $conn->query("SELECT u.id, u.name, u.username, u.email, ch.name AS charity FROM users u LEFT JOIN charities ch ON ch.id = u.charity_id")->fetchAll(); }
-if ($mine && !$is_admin) { $s = $conn->prepare("SELECT COUNT(*) FROM clothes WHERE charity_id=:c"); $s->execute([':c'=>$mine]); $n_cl = (int)$s->fetchColumn(); }
-else { $n_cl = (int)$conn->query("SELECT COUNT(*) FROM clothes")->fetchColumn(); }
+if ($is_admin) { $users_data = $conn->query("SELECT id, name, username, email FROM users")->fetchAll(); }
+$n_cl = (int)$conn->query("SELECT COUNT(*) FROM clothes")->fetchColumn();
 if ($is_admin) { $n_do = (int)$conn->query("SELECT COUNT(*) FROM donations")->fetchColumn(); }
-elseif ($mine) { $s = $conn->prepare("SELECT COUNT(*) FROM donations d INNER JOIN clothes c ON c.id=d.cloth_id WHERE c.charity_id=:u"); $s->execute([':u'=>$mine]); $n_do = (int)$s->fetchColumn(); }
 else { $s = $conn->prepare("SELECT COUNT(*) FROM donations WHERE user_id=:u"); $s->execute([':u'=>$uid]); $n_do = (int)$s->fetchColumn(); }
 $title = 'Dashboard'; $active = 'dashboard.php'; ?>
 <?php
@@ -110,18 +108,18 @@ h1,h2,h3,h4,.brand,.num{font-family:'Unbounded',system-ui,sans-serif;letter-spac
 <main class="flex-grow-1">
 
 <div class="band"><div class="container d-flex flex-wrap justify-content-between align-items-end gap-3">
- <div><h1>Hello, <?= e($_SESSION['name'] ?? $_SESSION['username']) ?></h1><p><?= $is_admin ? 'Admin' : ($mine ? 'Charity' : 'Donor') ?> dashboard</p></div>
+ <div><h1>Hello, <?= e($_SESSION['name'] ?? $_SESSION['username']) ?></h1><p><?= $is_admin ? 'Admin' : ($my_ch > 0 ? 'Charity' : 'Donor') ?> dashboard</p></div>
  <?php if($staff): ?><?php if($is_admin): ?><a class="btn btn-outline-light me-2" href="charities.php"><i class="bi bi-geo-alt"></i> Charities</a><?php endif; ?><a class="btn btn-sun" href="clothes.php"><i class="bi bi-plus-lg"></i> Post a need</a><?php endif; ?>
 </div></div>
 <div class="container pull">
  <div class="row g-4 mb-4">
   <div class="col-md-4"><div class="panel statbox"><div class="num" style="color:var(--denim)" data-count="<?= $n_cl ?>">0</div>open needs</div></div>
-  <div class="col-md-4"><div class="panel statbox"><div class="num" style="color:var(--denim)" data-count="<?= $n_do ?>">0</div><?= $staff ? 'pledges received' : 'pledges you made' ?></div></div>
+  <div class="col-md-4"><div class="panel statbox"><div class="num" style="color:var(--denim)" data-count="<?= $n_do ?>">0</div><?= $is_admin ? 'pledges received' : 'pledges you made' ?></div></div>
   <div class="col-md-4"><a class="panel d-block text-decoration-none h-100" href="<?= $staff ? 'donations.php' : 'list_clothes.php' ?>"><div class="num h4 mb-1"><?= $staff ? 'Confirm arrivals' : 'Find something to give' ?> →</div><small class="text-secondary"><?= $staff ? 'Tick off what has arrived' : 'Browse open requests' ?></small></a></div>
  </div>
  <?php if($is_admin): ?><div class="panel p-0 overflow-hidden"><div class="p-4 pb-2"><h2 class="h4">Users</h2></div><div class="table-responsive"><table class="table align-middle mb-0">
-  <thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Charity</th><th></th></tr></thead><tbody>
-  <?php foreach($users_data as $u): ?><tr><td class="fw-bold"><?= e($u['name']) ?></td><td><?= e($u['username']) ?></td><td><?= e($u['email']) ?></td><td><?= e($u['charity'] ?? '') ?></td>
+  <thead><tr><th>Name</th><th>Username</th><th>Email</th><th></th></tr></thead><tbody>
+  <?php foreach($users_data as $u): ?><tr><td class="fw-bold"><?= e($u['name']) ?></td><td><?= e($u['username']) ?></td><td><?= e($u['email']) ?></td>
    <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="editUsers.php?id=<?= (int)$u['id'] ?>">Edit</a> <a class="btn btn-sm btn-outline-danger" href="deleteUsers.php?id=<?= (int)$u['id'] ?>" data-confirm="Delete this user?">Delete</a></td></tr><?php endforeach; ?>
   </tbody></table></div></div><?php endif; ?>
 </div>

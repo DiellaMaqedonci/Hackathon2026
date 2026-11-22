@@ -104,7 +104,7 @@ h1,h2,h3,h4,.brand,.num{font-family:'Unbounded',system-ui,sans-serif;letter-spac
 <main class="flex-grow-1">
 
 <div class="hero" style="min-height:86vh"><div class="container"><div class="row justify-content-center"><div class="col-md-8 col-lg-5"><div class="glass">
- <h1 class="h2 fw-bold mb-1">Welcome back</h1><p class="text-secondary mb-4">Log in to manage your pledges.</p>
+ <h1 class="fw-bold mb-2" style="font-size:2.4rem">Welcome back</h1><p class="text-secondary mb-4">Log in to manage your pledges.</p>
  <?php if($error): ?><div class="alert alert-danger py-2"><?= e($error) ?></div><?php endif; ?>
  <div class="mb-4"><label class="form-label" for="country"><i class="bi bi-geo-alt"></i> Your country</label>
   <select class="form-select" id="country"><option value="">Choose your country…</option><?php foreach($countries as $c): ?><option value="<?= e($c['code']) ?>" <?= $my_country===$c['code']?'selected':'' ?>><?= e($c['name']) ?></option><?php endforeach; ?></select>

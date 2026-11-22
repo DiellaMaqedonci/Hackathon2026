@@ -12,6 +12,26 @@ if (isset($_GET['delete'])) {
 	header("Location: charities.php"); exit;
 }
 $countries = $conn->query("SELECT * FROM countries ORDER BY name")->fetchAll();
+if (isset($_POST['import_json'])) {
+	header('Content-Type: application/json');
+	$items = json_decode($_POST['import_json'], true); $cc = $_POST['country'] ?? '';
+	$okc = false; foreach ($countries as $c) { if ($c['code'] === $cc) $okc = true; }
+	$added = 0;
+	if ($okc && is_array($items)) {
+		$chk = $conn->prepare("SELECT 1 FROM charities WHERE country = :c AND name = :n AND ABS(lat - :la) < 0.0005 AND ABS(lng - :lo) < 0.0005 LIMIT 1");
+		$ins = $conn->prepare("INSERT INTO charities(name, country, city, address, lat, lng) VALUES (:n, :c, :ci, :a, :la, :lo)");
+		foreach (array_slice($items, 0, 150) as $it) {
+			$n = mb_substr(trim((string)($it['name'] ?? '')), 0, 255);
+			$la = $it['lat'] ?? null; $lo = $it['lng'] ?? null;
+			if ($n === '' || !is_numeric($la) || !is_numeric($lo) || abs($la) > 90 || abs($lo) > 180) continue;
+			$chk->execute([':c' => $cc, ':n' => $n, ':la' => $la, ':lo' => $lo]);
+			if ($chk->fetch()) continue;
+			$ins->execute([':n' => $n, ':c' => $cc, ':ci' => mb_substr(trim((string)($it['city'] ?? '')), 0, 120), ':a' => mb_substr(trim((string)($it['address'] ?? '')), 0, 255), ':la' => $la, ':lo' => $lo]);
+			$added++;
+		}
+	}
+	echo json_encode(['added' => $added]); exit;
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$name = trim($_POST['name'] ?? ''); $cc = $_POST['country'] ?? '';
 	$city = trim($_POST['city'] ?? ''); $addr = trim($_POST['address'] ?? '');
@@ -143,6 +163,11 @@ h1,h2,h3,h4,.brand,.num{font-family:'Unbounded',system-ui,sans-serif;letter-spac
  <div class="col-lg-6"><div class="panel p-0 overflow-hidden"><div id="pick" style="height:420px"></div></div></div>
 </div>
 
+<div class="panel mt-4"><h2 class="h5 mb-1"><i class="bi bi-cloud-download"></i> Import real charities from OpenStreetMap</h2>
+ <p class="text-secondary small">Finds real charity shops in a country (shops that take clothes) and adds them to the map. Up to 120 per click. Run it again for more.</p>
+ <div class="row g-2 align-items-center"><div class="col-md-5"><select class="form-select" id="impCountry"><?php foreach($countries as $c): ?><option value="<?= e($c['code']) ?>" <?= $my===$c['code']?'selected':'' ?>><?= e($c['name']) ?></option><?php endforeach; ?></select></div>
+ <div class="col-auto"><button type="button" class="btn btn-primary" id="imp">Import</button></div><div class="col"><span id="impOut" class="text-secondary"></span></div></div></div>
+
 <div class="panel p-0 overflow-hidden mt-4"><div class="table-responsive"><table class="table align-middle mb-0">
  <thead><tr><th>Charity</th><th>Country</th><th>City</th><th></th></tr></thead><tbody>
  <?php foreach($list as $l): ?><tr><td class="fw-bold"><?= e($l['name']) ?></td><td><?= e($l['country_name']) ?></td><td><?= e($l['city']) ?></td>
@@ -172,6 +197,31 @@ document.getElementById('find').addEventListener('click', async () => {
   } catch (e) { alert('Search failed. Click the map instead.'); }
 });
 document.getElementById('cform').addEventListener('submit', e => { if (!document.getElementById('lat').value) { e.preventDefault(); alert('Click the map to place the charity first.'); } });
+</script>
+<script>
+document.getElementById('imp').addEventListener('click', async () => {
+  const sel = document.getElementById('impCountry'), cc = sel.value, name = sel.selectedOptions[0].text.replace(/"/g, '');
+  const out = document.getElementById('impOut'), btn = document.getElementById('imp');
+  btn.disabled = true; out.textContent = 'Searching OpenStreetMap…';
+  const q = area => '[out:json][timeout:60];' + area + '->.a;(node["shop"="charity"](area.a);way["shop"="charity"](area.a););out center tags 120;';
+  async function run(area) {
+    const r = await fetch('https://overpass-api.de/api/interpreter', {method: 'POST', body: 'data=' + encodeURIComponent(q(area))});
+    return (await r.json()).elements || [];
+  }
+  try {
+    let els = await run('area["ISO3166-1:alpha2"="' + cc + '"]');
+    if (!els.length) els = await run('area["name:en"="' + name + '"]["boundary"="administrative"]');
+    const items = els.map(e => { const t = e.tags || {}; return {
+      name: t.name, lat: e.lat !== undefined ? e.lat : (e.center && e.center.lat), lng: e.lon !== undefined ? e.lon : (e.center && e.center.lon),
+      city: t['addr:city'] || '', address: [t['addr:street'], t['addr:housenumber']].filter(Boolean).join(' ') }; })
+      .filter(i => i.name && i.lat !== undefined && i.lat !== null);
+    if (!items.length) { out.textContent = 'No charity shops found for ' + name + ' on OpenStreetMap. Add charities by hand instead.'; btn.disabled = false; return; }
+    const fd = new FormData(); fd.append('country', cc); fd.append('import_json', JSON.stringify(items));
+    const res = await (await fetch('charities.php', {method: 'POST', body: fd})).json();
+    out.textContent = 'Imported ' + res.added + ' new charities (' + items.length + ' found). Reloading…';
+    setTimeout(() => location.reload(), 1200);
+  } catch (e) { out.textContent = 'Import failed. Check your internet connection and try again in a minute.'; btn.disabled = false; }
+});
 </script>
 </main>
 <footer class="footer py-4 mt-5"><div class="container d-flex flex-wrap justify-content-between gap-2 small">

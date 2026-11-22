@@ -2,15 +2,14 @@
 session_start();
 include_once('config.php');
 if (empty($_SESSION['username'])) { header("Location: login.php"); exit; }
-$mine = (int)($_SESSION['charity_id'] ?? 0);
-if (empty($_SESSION['is_admin']) && !$mine) { header("Location: dashboard.php"); exit; }
+$my_ch = (int)($_SESSION['charity_id'] ?? 0);
+if (empty($_SESSION['is_admin']) && $my_ch < 1) { header("Location: dashboard.php"); exit; }
 $id = (int)($_GET['id'] ?? 0);
 $st = $conn->prepare("SELECT * FROM clothes WHERE id=:id"); $st->bindParam(':id', $id, PDO::PARAM_INT); $st->execute();
 $user_data = $st->fetch();
 if (!$user_data) { header("Location: list_clothes.php"); exit; }
-if (empty($_SESSION['is_admin']) && (int)$user_data['charity_id'] !== $mine) { header("Location: dashboard.php"); exit; }
+if (empty($_SESSION['is_admin']) && (int)$user_data['charity_id'] !== $my_ch) { header("Location: list_clothes.php"); exit; }
 $charities = $conn->query("SELECT ch.id, ch.name, co.name AS cn FROM charities ch LEFT JOIN countries co ON co.code = ch.country ORDER BY co.name, ch.name")->fetchAll();
-if (empty($_SESSION['is_admin'])) { $charities = array_values(array_filter($charities, fn($c) => (int)$c['id'] === $mine)); }
 $title = 'Edit request'; $active = 'list_clothes.php'; ?>
 <?php
 // Set $title and $active before including this file.
@@ -114,7 +113,7 @@ h1,h2,h3,h4,.brand,.num{font-family:'Unbounded',system-ui,sans-serif;letter-spac
  <div class="col-md-8"><label class="form-label" for="cloth_name">What is needed?</label><input class="form-control" id="cloth_name" name="cloth_name" value="<?= e($user_data['cloth_name']) ?>" required></div>
  <div class="col-6 col-md-2"><label class="form-label" for="cloth_size">Size</label><input type="number" class="form-control" id="cloth_size" name="cloth_size" value="<?= e($user_data['cloth_size']) ?>" required></div>
  <div class="col-6 col-md-2"><label class="form-label" for="cloth_quantity">Qty</label><input type="number" min="1" class="form-control" id="cloth_quantity" name="cloth_quantity" value="<?= e($user_data['cloth_quantity']) ?>" required></div>
- <div class="col-12"><label class="form-label" for="charity_id">Charity</label><select class="form-select" id="charity_id" name="charity_id" required><option value="">Choose the charity…</option><?php foreach($charities as $ch): ?><option value="<?= (int)$ch['id'] ?>" <?= (int)$user_data['charity_id']===(int)$ch['id']?'selected':'' ?>><?= e($ch['cn'] . ' · ' . $ch['name']) ?></option><?php endforeach; ?></select><?php if($adm): ?><div class="form-text">Not listed? <a href="charities.php">Add the charity first</a>.</div><?php endif; ?></div>
+ <?php if(!empty($_SESSION['is_admin'])): ?><div class="col-12"><label class="form-label" for="charity_id">Charity</label><select class="form-select" id="charity_id" name="charity_id" required><option value="">Choose the charity…</option><?php foreach($charities as $ch): ?><option value="<?= (int)$ch['id'] ?>" <?= (int)$user_data['charity_id']===(int)$ch['id']?'selected':'' ?>><?= e($ch['cn'] . ' · ' . $ch['name']) ?></option><?php endforeach; ?></select><div class="form-text">Not listed? <a href="charities.php">Add the charity first</a>.</div></div><?php endif; ?>
  <div class="col-12"><label class="form-label" for="cloth_desc">Description</label><textarea class="form-control" id="cloth_desc" name="cloth_desc" rows="3" required><?= e($user_data['cloth_desc']) ?></textarea></div>
  <div class="col-12"><label class="form-label" for="cloth_img">Image link (optional)</label><input class="form-control" id="cloth_img" name="cloth_img" value="<?= e($user_data['cloth_img']) ?>"></div>
 </div><div class="d-flex gap-2 mt-4"><button class="btn btn-primary px-4">Save changes</button><a class="btn btn-outline-secondary" href="list_clothes.php">Cancel</a></div></form></div>

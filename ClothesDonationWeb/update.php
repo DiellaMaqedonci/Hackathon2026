@@ -2,8 +2,8 @@
 session_start();
 include_once('config.php');
 if (empty($_SESSION['username'])) { header("Location: login.php"); exit; }
-$mine = (int)($_SESSION['charity_id'] ?? 0);
-if (empty($_SESSION['is_admin']) && !$mine) { header("Location: dashboard.php"); exit; }
+$adm = !empty($_SESSION['is_admin']); $my_ch = (int)($_SESSION['charity_id'] ?? 0);
+if (!$adm && $my_ch < 1) { header("Location: dashboard.php"); exit; }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header("Location: list_clothes.php"); exit; }
 
 $id   = (int)($_POST['id'] ?? 0);
@@ -12,12 +12,11 @@ $desc = trim($_POST['cloth_desc'] ?? '');
 $qty  = (int)($_POST['cloth_quantity'] ?? 0);
 $size = $_POST['cloth_size'] ?? '';
 $img  = trim($_POST['cloth_img'] ?? '');
-$cid  = (int)($_POST['charity_id'] ?? 0);
-if (empty($_SESSION['is_admin'])) {  // a charity account may only change its own needs, and cannot move them to another charity
-	$own = $conn->prepare("SELECT charity_id FROM clothes WHERE id=:id"); $own->execute([':id'=>$id]);
-	if ((int)$own->fetchColumn() !== $mine) { header("Location: dashboard.php"); exit; }
-	$cid = $mine;
-}
+
+$st = $conn->prepare("SELECT charity_id FROM clothes WHERE id = :id"); $st->execute([':id' => $id]);
+$row = $st->fetch();
+if (!$row || (!$adm && (int)$row['charity_id'] !== $my_ch)) { header("Location: list_clothes.php"); exit; }
+$cid = $adm ? (int)($_POST['charity_id'] ?? 0) : $my_ch;
 
 if ($id <= 0 || $name === '' || $desc === '' || $qty < 1 || $cid < 1 || !is_numeric($size)) {
 	die("Please fill in every field and choose a charity (size must be a number). <a href='list_clothes.php'>Go back</a>");

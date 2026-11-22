@@ -2,7 +2,7 @@
 session_start();
 include_once('config.php');
 if (empty($_SESSION['username'])) { header("Location: login.php"); exit; }
-$adm = !empty($_SESSION['is_admin']);
+$adm = !empty($_SESSION['is_admin']); $my_ch = (int)($_SESSION['charity_id'] ?? 0);
 
 // The country is remembered in a cookie (chosen on the login page or here)
 if (isset($_GET['country'])) {
@@ -11,6 +11,7 @@ if (isset($_GET['country'])) {
 	$_COOKIE['country'] = $cc;
 }
 $country = $_COOKIE['country'] ?? '';
+if ($country === '' && $my_ch > 0) { $x = $conn->prepare("SELECT country FROM charities WHERE id = :i"); $x->execute([':i' => $my_ch]); $country = (string)$x->fetchColumn(); }
 $countries = $conn->query("SELECT * FROM countries ORDER BY name")->fetchAll();
 $cur = null;
 foreach ($countries as $c) { if ($c['code'] === $country) $cur = $c; }
@@ -142,7 +143,7 @@ h1,h2,h3,h4,.brand,.num{font-family:'Unbounded',system-ui,sans-serif;letter-spac
   if ($charity) echo e($charity['name']) . ' · ' . count($users_data) . ' requests';
   elseif ($cur) echo e($cur['name']) . ' · ' . count($charities) . ' charities';
   else echo 'Choose your country to start'; ?></p></div>
- <?php if($adm): ?><div class="d-flex gap-2"><a class="btn btn-outline-light" href="charities.php"><i class="bi bi-geo-alt"></i> Charities</a><a class="btn btn-sun" href="clothes.php"><i class="bi bi-plus-lg"></i> Post a need</a></div><?php endif; ?>
+ <?php if($adm || $my_ch > 0): ?><div class="d-flex gap-2"><?php if($adm): ?><a class="btn btn-outline-light" href="charities.php"><i class="bi bi-geo-alt"></i> Charities</a><?php endif; ?><a class="btn btn-sun" href="clothes.php"><i class="bi bi-plus-lg"></i> Post a need</a></div><?php endif; ?>
 </div></div>
 <div class="container pull">
  <div class="panel mb-4"><form method="get" class="row g-2 align-items-center">
@@ -169,7 +170,7 @@ h1,h2,h3,h4,.brand,.num{font-family:'Unbounded',system-ui,sans-serif;letter-spac
   <?php foreach($users_data as $c): ?>
    <div class="col-sm-6 col-lg-4 col-xl-3 cl-col" data-name="<?= e(mb_strtolower($c['cloth_name'])) ?>">
     <?php cloth_card($c); ?>
-    <?php if($adm): ?><div class="d-flex gap-2 mt-2"><a class="btn btn-sm btn-outline-secondary flex-fill" href="edit.php?id=<?= (int)$c['id'] ?>">Edit</a><a class="btn btn-sm btn-outline-danger flex-fill" href="delete.php?id=<?= (int)$c['id'] ?>" data-confirm="Delete this request?">Delete</a></div><?php endif; ?>
+    <?php if($adm || ($my_ch > 0 && (int)$c['charity_id'] === $my_ch)): ?><div class="d-flex gap-2 mt-2"><a class="btn btn-sm btn-outline-secondary flex-fill" href="edit.php?id=<?= (int)$c['id'] ?>">Edit</a><a class="btn btn-sm btn-outline-danger flex-fill" href="delete.php?id=<?= (int)$c['id'] ?>" data-confirm="Delete this request?">Delete</a></div><?php endif; ?>
    </div>
   <?php endforeach; ?>
   </div>

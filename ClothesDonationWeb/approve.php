@@ -1,24 +1,4 @@
-<!-- <?php 
-	/* 
-	 We will include config.php for connection with database.
-	 We will get the donations id and update the database based on that donations id
-	*/
-	include_once('config.php');
-
-	$id = $_GET['id'];
-	$sql = "UPDATE `donations` SET `is_approved` = 'true' WHERE id=:id";
-	$prep = $conn->prepare($sql);
-	$prep->bindParam(':id',$id);
-	$prep->execute();
-
-	header("Location: list_clothes.php");
- ?>
- 
-
- -->
-
-
- <?php
+<?php
 session_start();
 include_once('config.php');
 if (empty($_SESSION['username'])) { header("Location: login.php"); exit; }

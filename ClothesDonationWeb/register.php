@@ -39,7 +39,7 @@
 		register_fail("You have not filled in all the fields.", $old);
 	}
 
-	if (mb_strlen($emri) > 100 || mb_strlen($username) > 50 || mb_strlen($email) > 255)
+	if (mb_strlen($name) > 100 || mb_strlen($username) > 50 || mb_strlen($email) > 255)
 	{
 		register_fail("One of the fields is too long.", $old);
 	}

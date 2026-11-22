@@ -1,87 +1,38 @@
-<!-- <?php 
- /*Creating a session  based on a session identifier, passed via a GET or POST request.
-  We will include config.php for connection with database.
-  We will fetch all datas from movies in database and show them.
-  */
-
-	  session_start();
-
-    include_once('config.php');
-
-    if (empty($_SESSION['username'])) {
-          header("Location: login.php");
-    }
-   
-    $sql = "SELECT * FROM clothes";
-    $selectUsers = $conn->prepare($sql);
-    $selectUsers->execute();
-
-    $users_data = $selectUsers->fetchAll();
-    
- ?>
-
- <!DOCTYPE html>
-
-<html lang="en"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Browse needs · Spare Thread</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
-<link href="assets/style.css" rel="stylesheet">
-</head><body class="d-flex flex-column min-vh-100">
-<nav class="navbar navbar-expand-md site-nav sticky-top"><div class="container">
-  <a class="navbar-brand brand" href="index.php"><i class="bi bi-scissors"></i> Spare Thread</a>
-  <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav" aria-label="Menu"><span class="navbar-toggler-icon"></span></button>
-  <div class="collapse navbar-collapse" id="nav"><ul class="navbar-nav ms-auto align-items-md-center gap-md-1">
-    <li class="nav-item"><a class="nav-link active" href="list_clothes.php">Browse needs</a></li>
-    <li class="nav-item"><a class="nav-link" href="donations.php">My pledges</a></li>
-    <li class="nav-item"><a class="nav-link" href="dashboard.php">Dashboard</a></li>
-    <li class="nav-item"><a class="nav-link" href="editUsers.php">Users</a></li>
-    <li class="nav-item ms-md-2"><a class="btn btn-primary btn-sm px-3" href="login.php">Log in</a></li>
-  </ul></div>
-</div></nav>
-<main class="flex-grow-1">
-
-<div class="container">
-  <div class="page-head d-flex flex-wrap justify-content-between align-items-end gap-2">
-    <div><h1>What's needed</h1><p class="text-secondary mb-0">Open requests from charities near you</p></div>
-    <a class="btn btn-thread" href="clothes.php"><i class="bi bi-plus-lg"></i> Post a need</a>
-  </div>
-  <form id="filterForm" class="panel mb-4"><div class="row g-3 align-items-end">
-    <div class="col-md-4"><label class="form-label" for="q">Search</label><input class="form-control" id="q" placeholder="Coats, boots…"></div>
-    <div class="col-6 col-md-3"><label class="form-label" for="season">Season</label>
-      <select class="form-select" id="season"><option value="">Any</option><option>Winter</option><option>Spring</option><option>Summer</option><option>Autumn</option></select></div>
-    <div class="col-6 col-md-2"><label class="form-label" for="size">Size</label>
-      <select class="form-select" id="size"><option value="">Any</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>32</option></select></div>
-    <div class="col-md-3"><label class="form-label" for="city">City</label>
-      <select class="form-select" id="city"><option value="">All</option><option>Pristina</option><option>Prizren</option><option>Peja</option></select></div>
-  </div></form>
-
-  <div class="row g-4">
-    <div class="col-sm-6 col-lg-4 col-xl-3 need-col" data-item="Winter coats" data-season="Winter" data-size="M" data-city="Pristina"><a class="tag text-decoration-none" href="details.php?id=1"><div class="d-flex justify-content-between align-items-start mb-2"><div class="size">M</div><span class="season">Winter</span></div><h3 class="h5 mb-1">Winter coats</h3><div class="small text-secondary mb-3">Hope Shelter · Pristina</div><div class="progress mb-1"><div class="progress-bar" style="width:60%"></div></div><div class="d-flex justify-content-between small"><span>12 of 20 pledged</span><span class="text-secondary">by 30 Nov</span></div></a></div>
-    <div class="col-sm-6 col-lg-4 col-xl-3 need-col" data-item="Children's boots" data-season="Winter" data-size="32" data-city="Prizren"><a class="tag text-decoration-none" href="details.php?id=2"><div class="d-flex justify-content-between align-items-start mb-2"><div class="size">32</div><span class="season">Winter</span></div><h3 class="h5 mb-1">Children's boots</h3><div class="small text-secondary mb-3">Little Steps · Prizren</div><div class="progress mb-1"><div class="progress-bar" style="width:20%"></div></div><div class="d-flex justify-content-between small"><span>3 of 15 pledged</span><span class="text-secondary">by 05 Dec</span></div></a></div>
-    <div class="col-sm-6 col-lg-4 col-xl-3 need-col" data-item="Wool sweaters" data-season="Autumn" data-size="L" data-city="Pristina"><a class="tag text-decoration-none" href="details.php?id=3"><div class="d-flex justify-content-between align-items-start mb-2"><div class="size">L</div><span class="season">Autumn</span></div><h3 class="h5 mb-1">Wool sweaters</h3><div class="small text-secondary mb-3">Hope Shelter · Pristina</div><div class="progress mb-1"><div class="progress-bar" style="width:100%"></div></div><div class="d-flex justify-content-between small"><span>10 of 10 pledged</span><span class="text-secondary">by 25 Nov</span></div></a></div>
-    <div class="col-sm-6 col-lg-4 col-xl-3 need-col" data-item="Thermal socks" data-season="Winter" data-size="S" data-city="Peja"><a class="tag text-decoration-none" href="details.php?id=4"><div class="d-flex justify-content-between align-items-start mb-2"><div class="size">S</div><span class="season">Winter</span></div><h3 class="h5 mb-1">Thermal socks</h3><div class="small text-secondary mb-3">Care Circle · Peja</div><div class="progress mb-1"><div class="progress-bar" style="width:45%"></div></div><div class="d-flex justify-content-between small"><span>18 of 40 pledged</span><span class="text-secondary">by 10 Dec</span></div></a></div>
-  </div>
-  <p id="emptyMsg" class="text-center text-secondary py-5" hidden>No requests match those filters. Try clearing one.</p>
-</div>
-
-</main>
-<footer class="footer mt-5 py-4"><div class="container d-flex flex-wrap justify-content-between gap-2 small">
-  <span><i class="bi bi-scissors text-warning"></i> Spare Thread · clothes to the people who need them</span><span>© 2026</span>
-</div></footer>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="assets/main.js"></script>
-</body></html> -->
-
 <?php
 session_start();
 include_once('config.php');
 if (empty($_SESSION['username'])) { header("Location: login.php"); exit; }
 $adm = !empty($_SESSION['is_admin']);
-$users_data = $conn->query("SELECT * FROM clothes ORDER BY id DESC")->fetchAll();
-$title = 'Browse needs'; $active = 'list_clothes.php'; ?>
+
+// The country is remembered in a cookie (chosen on the login page or here)
+if (isset($_GET['country'])) {
+	$cc = strtoupper(preg_replace('/[^A-Za-z]/', '', $_GET['country']));
+	setcookie('country', $cc, time() + 31536000, '/');
+	$_COOKIE['country'] = $cc;
+}
+$country = $_COOKIE['country'] ?? '';
+$countries = $conn->query("SELECT * FROM countries ORDER BY name")->fetchAll();
+$cur = null;
+foreach ($countries as $c) { if ($c['code'] === $country) $cur = $c; }
+
+$charities = []; $charity = null; $users_data = [];
+if ($cur) {
+	$st = $conn->prepare("SELECT ch.*, (SELECT COUNT(*) FROM clothes WHERE clothes.charity_id = ch.id) AS needs FROM charities ch WHERE ch.country = :c ORDER BY ch.name");
+	$st->execute([':c' => $country]);
+	$charities = $st->fetchAll();
+	$cid = (int)($_GET['charity'] ?? 0);
+	foreach ($charities as $ch) { if ((int)$ch['id'] === $cid) $charity = $ch; }
+	if ($charity) {
+		$st = $conn->prepare("SELECT * FROM clothes WHERE charity_id = :i ORDER BY id DESC");
+		$st->execute([':i' => $charity['id']]);
+	} else {
+		$st = $conn->prepare("SELECT clothes.* FROM clothes INNER JOIN charities ch ON ch.id = clothes.charity_id WHERE ch.country = :c ORDER BY clothes.id DESC");
+		$st->execute([':c' => $country]);
+	}
+	$users_data = $st->fetchAll();
+}
+$title = 'Browse needs'; $active = 'list_clothes.php';
+?>
 <?php
 // Set $title and $active before including this file.
 if (session_status() === PHP_SESSION_NONE) session_start();
@@ -106,6 +57,7 @@ function cloth_card($c){ ?>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&family=Unbounded:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--ink:#0c1633;--ink2:#16254f;--denim:#3157c9;--sun:#ffc93c;--mint:#4fd1a1;--paper:#f3f5fb;--line:#e1e6f2;
 --bs-body-bg:#f3f5fb;--bs-body-color:#0c1633;--bs-body-font-family:'Manrope',system-ui,sans-serif;--bs-primary:#3157c9;--bs-primary-rgb:49,87,201;--bs-link-color:#3157c9}
@@ -143,8 +95,8 @@ h1,h2,h3,h4,.brand,.num{font-family:'Unbounded',system-ui,sans-serif;letter-spac
 .cl{display:block;background:#fff;border:1px solid var(--line);border-radius:22px;overflow:hidden;color:var(--ink);text-decoration:none;height:100%;transition:.35s}
 .cl:hover{transform:translateY(-8px) rotate(-.6deg);box-shadow:0 26px 50px rgba(12,22,51,.18);color:var(--ink)}
 .cl .ph{aspect-ratio:4/3;background:linear-gradient(135deg,var(--denim),var(--ink2));display:grid;place-items:center;color:var(--sun);font-size:3.4rem;position:relative;overflow:hidden}
-.cl .ph img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;transition:.5s}
-.cl:hover .ph img{transform:scale(1.07)}
+.cl .ph img{width:100%;height:100%;object-fit:contain;background:#eef1fa;position:absolute;inset:0;transition:.5s}
+.cl:hover .ph img{transform:none}
 .cl .sz{position:absolute;top:12px;right:12px;background:var(--sun);color:var(--ink);font-family:'Unbounded';font-weight:800;font-size:.8rem;border-radius:12px;padding:.3rem .75rem;z-index:1}
 .cl .bd{padding:1.1rem 1.25rem 1.3rem}
 .pill{display:inline-block;font-size:.78rem;font-weight:700;padding:.25rem .7rem;border-radius:99px;background:#e8eefc;color:var(--denim)}
@@ -159,6 +111,7 @@ h1,h2,h3,h4,.brand,.num{font-family:'Unbounded',system-ui,sans-serif;letter-spac
 .footer{background:var(--ink);color:#9aa8d2}
 @media(max-width:991px){.float-tag{display:none}.hero{min-height:auto}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.js .rv{opacity:1;transform:none}}
+.leaflet-container a.btn-primary{color:#fff}.leaflet-popup-content{font-family:inherit}
 </style>
 </head><body class="d-flex flex-column min-vh-100">
 <nav class="navbar navbar-expand-md nav-dark sticky-top" data-bs-theme="dark"><div class="container">
@@ -178,22 +131,68 @@ h1,h2,h3,h4,.brand,.num{font-family:'Unbounded',system-ui,sans-serif;letter-spac
   </ul></div>
 </div></nav>
 <main class="flex-grow-1">
-
 <div class="band"><div class="container d-flex flex-wrap justify-content-between align-items-end gap-3">
- <div><h1>What's needed</h1><p><?= count($users_data) ?> open requests</p></div>
- <?php if($adm): ?><a class="btn btn-sun" href="clothes.php"><i class="bi bi-plus-lg"></i> Post a need</a><?php endif; ?>
+ <div><h1>What's needed</h1><p><?php
+  if ($charity) echo e($charity['name']) . ' · ' . count($users_data) . ' requests';
+  elseif ($cur) echo e($cur['name']) . ' · ' . count($charities) . ' charities';
+  else echo 'Choose your country to start'; ?></p></div>
+ <?php if($adm): ?><div class="d-flex gap-2"><a class="btn btn-outline-light" href="charities.php"><i class="bi bi-geo-alt"></i> Charities</a><a class="btn btn-sun" href="clothes.php"><i class="bi bi-plus-lg"></i> Post a need</a></div><?php endif; ?>
 </div></div>
 <div class="container pull">
- <div class="panel mb-4"><div class="input-group"><span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span><input id="q" class="form-control border-start-0" placeholder="Search coats, boots, sweaters…" aria-label="Search"></div></div>
- <div class="row g-4">
- <?php foreach($users_data as $c): ?>
-  <div class="col-sm-6 col-lg-4 col-xl-3 cl-col" data-name="<?= e(mb_strtolower($c['cloth_name'])) ?>">
-   <?php cloth_card($c); ?>
-   <?php if($adm): ?><div class="d-flex gap-2 mt-2"><a class="btn btn-sm btn-outline-secondary flex-fill" href="edit.php?id=<?= (int)$c['id'] ?>">Edit</a><a class="btn btn-sm btn-outline-danger flex-fill" href="delete.php?id=<?= (int)$c['id'] ?>" data-confirm="Delete this request?">Delete</a></div><?php endif; ?>
+ <div class="panel mb-4"><form method="get" class="row g-2 align-items-center">
+  <div class="col-auto"><label class="form-label mb-0" for="country"><i class="bi bi-geo-alt"></i> Your country</label></div>
+  <div class="col-12 col-md"><select class="form-select" id="country" name="country" onchange="this.form.submit()"><option value="">Choose your country…</option><?php foreach($countries as $c): ?><option value="<?= e($c['code']) ?>" <?= $country===$c['code']?'selected':'' ?>><?= e($c['name']) ?></option><?php endforeach; ?></select></div>
+ </form></div>
+
+ <?php if(!$cur): ?>
+  <div class="panel text-center py-5"><i class="bi bi-globe-europe-africa display-4 text-secondary"></i><h2 class="h4 mt-3">Pick your country</h2><p class="text-secondary mb-0">We'll show the charities near you on a map.</p></div>
+ <?php else: ?>
+  <div class="row g-4 mb-4">
+   <div class="col-lg-8"><div class="panel p-0 overflow-hidden"><div id="map" style="height:430px"></div></div></div>
+   <div class="col-lg-4"><div class="panel p-3" style="max-height:430px;overflow:auto">
+    <a class="d-block fw-bold mb-2 text-decoration-none" href="list_clothes.php">All charities in <?= e($cur['name']) ?></a>
+    <?php foreach($charities as $ch): ?>
+     <a class="d-block p-3 mb-2 rounded-4 text-decoration-none text-reset <?= ($charity && (int)$charity['id']===(int)$ch['id']) ? 'bg-warning-subtle' : 'bg-body-tertiary' ?>" href="list_clothes.php?charity=<?= (int)$ch['id'] ?>"><b><?= e($ch['name']) ?></b><br><small class="text-secondary"><?= e($ch['city']) ?> · <?= (int)$ch['needs'] ?> needs</small></a>
+    <?php endforeach; ?>
+    <?php if(!$charities): ?><p class="text-secondary mb-0">No charities here yet.<?= $adm ? ' <a href="charities.php">Add one</a>' : '' ?></p><?php endif; ?>
+   </div></div>
   </div>
- <?php endforeach; ?>
- </div>
- <p id="emptyMsg" class="text-center text-secondary py-5" <?= $users_data ? 'hidden' : '' ?>>Nothing matches. Try another word.</p>
+
+  <div class="panel mb-4"><div class="input-group"><span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span><input id="q" class="form-control border-start-0" placeholder="Search coats, boots, sweaters…" aria-label="Search"></div></div>
+  <div class="row g-4">
+  <?php foreach($users_data as $c): ?>
+   <div class="col-sm-6 col-lg-4 col-xl-3 cl-col" data-name="<?= e(mb_strtolower($c['cloth_name'])) ?>">
+    <?php cloth_card($c); ?>
+    <?php if($adm): ?><div class="d-flex gap-2 mt-2"><a class="btn btn-sm btn-outline-secondary flex-fill" href="edit.php?id=<?= (int)$c['id'] ?>">Edit</a><a class="btn btn-sm btn-outline-danger flex-fill" href="delete.php?id=<?= (int)$c['id'] ?>" data-confirm="Delete this request?">Delete</a></div><?php endif; ?>
+   </div>
+  <?php endforeach; ?>
+  </div>
+  <p id="emptyMsg" class="text-center text-secondary py-5" <?= $users_data ? 'hidden' : '' ?>><?= $users_data ? 'Nothing matches. Try another word.' : 'No needs posted here yet.' ?></p>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+  const cur = <?= json_encode(['lat'=>(float)$cur['lat'],'lng'=>(float)$cur['lng'],'zoom'=>(int)$cur['zoom']]) ?>;
+  const list = <?= json_encode($charities, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>;
+  const sel = <?= (int)($charity['id'] ?? 0) ?>;
+  const map = L.map('map').setView([cur.lat, cur.lng], cur.zoom);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'}).addTo(map);
+  const pts = [], markers = {};
+  list.forEach(c => {
+    const lat = parseFloat(c.lat), lng = parseFloat(c.lng);
+    // skip charities without real coordinates (otherwise they land at 0,0 and zoom the map out to the ocean)
+    if (!isFinite(lat) || !isFinite(lng) || (lat === 0 && lng === 0)) return;
+    const m = L.marker([lat, lng]).addTo(map); pts.push([lat, lng]); markers[c.id] = m;
+    const d = document.createElement('div');
+    d.innerHTML = '<b></b><br><span></span><br><a class="btn btn-sm btn-primary mt-2">See needs</a>';
+    d.querySelector('b').textContent = c.name;
+    d.querySelector('span').textContent = (c.city || '') + (c.address ? ' · ' + c.address : '') + ' · ' + c.needs + ' needs';
+    d.querySelector('a').href = 'list_clothes.php?charity=' + c.id;
+    m.bindPopup(d);
+  });
+  if (pts.length) map.fitBounds(pts, {padding: [40, 40], maxZoom: 12});
+  if (sel && markers[sel]) { map.setView(markers[sel].getLatLng(), 14); markers[sel].openPopup(); }
+  </script>
+ <?php endif; ?>
 </div>
 </main>
 <footer class="footer py-4 mt-5"><div class="container d-flex flex-wrap justify-content-between gap-2 small">
